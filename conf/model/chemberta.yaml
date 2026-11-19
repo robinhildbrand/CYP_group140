@@ -1,0 +1,24 @@
+# @package _global_
+# Pretrained ChemBERTa-77M encoder + readout head.
+defaults:
+  - override /readout: mlp
+
+model:
+  name: chemberta
+  type: chemberta
+  checkpoint: DeepChem/ChemBERTa-77M-MTR
+  precision: fp32
+  freeze_encoder: false   # Set true for classification / frozen feature extraction
+  encoder_lr: 2.0e-5
+  readout_lr: 3.0e-4      # Matches optimal readout LR from Atom-JEPA baseline
+  max_length: 128
+  pool: mean              # mean | cls | attention
+  pool_heads: 4           # Number of attention heads when pool=attention
+  two_stage: false        # true keeps encoder frozen until unfreeze_epoch
+  unfreeze_epoch: 5       # Epoch after which encoder unfreezes when two_stage=true
+
+train:
+  epochs: 50
+  batch_size: 32
+  weight_decay: 1.0e-4
+  grad_clip: 1.0

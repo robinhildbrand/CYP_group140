@@ -1,0 +1,6 @@
+# Pre-norm residual MLP from embedding to predictions.
+type: resmlp
+hidden_dim: 512
+num_blocks: 2     # Residual blocks, each LayerNorm -> Linear -> GELU -> Dropout -> Linear
+dropout: 0.1
+expansion: 2      # Inner width of a block, as a multiple of hidden_dim
