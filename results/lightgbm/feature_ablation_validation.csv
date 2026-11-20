@@ -1,0 +1,7 @@
+task,features,validation_metric,validation_score,classification_threshold,seed,source
+regression,morgan,macro_ST-RAE,0.7772807498712773,,42,"validation experiments, November 14, 2026"
+regression,rdkit,macro_ST-RAE,0.7491971642164397,,42,"validation experiments, November 14, 2026"
+regression,morgan+rdkit,macro_ST-RAE,0.7242041284965587,,42,"validation experiments, November 14, 2026"
+classification,morgan,macro_MCC,0.3014974171725935,0.5,42,"validation experiments, November 14, 2026"
+classification,rdkit,macro_MCC,0.21648959373304913,0.5,42,"validation experiments, November 14, 2026"
+classification,morgan+rdkit,macro_MCC,0.2365565577679542,0.5,42,"validation experiments, November 14, 2026"

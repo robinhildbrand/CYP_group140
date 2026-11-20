@@ -1,0 +1,117 @@
+{
+  "regression": {
+    "model": "morgan_rdkit_lgbm",
+    "seed": 42,
+    "featurizers": [
+      "morgan",
+      "rdkit"
+    ],
+    "morgan": {
+      "radius": 2,
+      "n_bits": 1024,
+      "use_counts": true
+    },
+    "early_stopping_rounds": 200,
+    "params": {
+      "n_estimators": 5000,
+      "learning_rate": 0.005,
+      "num_leaves": 15,
+      "min_child_samples": 20,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.3,
+      "reg_lambda": 1.0,
+      "n_jobs": 4
+    },
+    "best_iterations": {
+      "CYP1A2_pIC50_direct_inhibition": 979,
+      "CYP2C9_pIC50_direct_inhibition": 2282,
+      "CYP2D6_pIC50_direct_inhibition": 2722,
+      "CYP3A4_pIC50_direct_inhibition": 2508
+    },
+    "validation_metrics": {
+      "CYP1A2_pIC50_direct_inhibition": {
+        "MAE": 0.7399059377097692,
+        "R2": 0.1951145779173492,
+        "ST-RAE": 0.8787683635584487,
+        "n": 210
+      },
+      "CYP2C9_pIC50_direct_inhibition": {
+        "MAE": 0.4803587070549798,
+        "R2": 0.46996462942515416,
+        "ST-RAE": 0.598258808040524,
+        "n": 209
+      },
+      "CYP2D6_pIC50_direct_inhibition": {
+        "MAE": 0.6496433143890001,
+        "R2": 0.18391817922283993,
+        "ST-RAE": 0.953500468770417,
+        "n": 230
+      },
+      "CYP3A4_pIC50_direct_inhibition": {
+        "MAE": 0.5350432332564025,
+        "R2": 0.6014973620698815,
+        "ST-RAE": 0.466288873616845,
+        "n": 337
+      },
+      "macro_ST-RAE": 0.7242041284965587
+    },
+    "split_sha256": {
+      "train": "c9c72ba7ffef582ed884f9de12d8d36e1cfe007f3247782cdd330d7ec0f01779",
+      "val": "f2bfab24a433c80ae727d3650e2de392b62621071469d7b9d8008debefa2cebc"
+    },
+    "source_run": "2026-11-08_17-23-53"
+  },
+  "classification": {
+    "model": "morgan_rdkit_lgbm",
+    "seed": 42,
+    "featurizers": [
+      "morgan",
+      "rdkit"
+    ],
+    "morgan": {
+      "radius": 2,
+      "n_bits": 1024,
+      "use_counts": true
+    },
+    "early_stopping_rounds": 200,
+    "params": {
+      "n_estimators": 5000,
+      "learning_rate": 0.01,
+      "num_leaves": 15,
+      "min_child_samples": 40,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.3,
+      "reg_lambda": 1.0,
+      "n_jobs": 4,
+      "class_weight": "balanced"
+    },
+    "best_iterations": {
+      "CYP2D6_is_TDI": 722,
+      "CYP3A4_is_TDI": 2154
+    },
+    "validation_metrics": {
+      "CYP2D6_is_TDI": {
+        "MCC": 0.1386803706798365,
+        "AUROC": 0.6681874346545005,
+        "AP": 0.43001543078536747,
+        "n": 230,
+        "positive_fraction": 0.27391304347826084
+      },
+      "CYP3A4_is_TDI": {
+        "MCC": 0.33443274485607194,
+        "AUROC": 0.813213094611199,
+        "AP": 0.5088021263936868,
+        "n": 530,
+        "positive_fraction": 0.2037735849056604
+      },
+      "macro_MCC": 0.2365565577679542
+    },
+    "split_sha256": {
+      "train": "ea62d4ba1837c48fd71afb0098ded5f310bb6ea2d184cd682efecd3c08b3a2ca",
+      "val": "a43de0e95ca71826967294c56486429f80de75906703ae5ab4b6922c97f05c6e"
+    },
+    "source_run": "2026-11-08_19-33-26"
+  }
+}

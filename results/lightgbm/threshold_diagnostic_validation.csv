@@ -1,0 +1,4 @@
+features,fixed_0_5_macro_MCC,CYP2D6_threshold,CYP3A4_threshold,same_validation_threshold_tuned_macro_MCC,seed
+morgan+rdkit,0.2365565577679542,0.36,0.17,0.34044377923272545,42
+morgan,0.3014974171725935,0.51,0.23,0.318495,42
+rdkit,0.21648959373304913,0.39,0.14,0.315986,42
