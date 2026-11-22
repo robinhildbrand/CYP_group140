@@ -193,6 +193,10 @@ def main(cfg):
     vp = val[['SMILES', 'Molecule_Name']].copy()
     vp[targets] = validation_predictions
     vp.to_csv(out / 'validation_predictions.csv', index=False)
+    if not cfg.eval_test:
+        print('Validation complete. Test evaluation skipped.')
+        return
+
     # Only now load and evaluate the held-out labelled test split.
     test = pd.read_csv(data / task / 'test.csv')
     if not len(test):

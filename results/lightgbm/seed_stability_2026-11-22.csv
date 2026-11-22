@@ -1,0 +1,7 @@
+task,seed,metric,validation_score
+regression,42,macro_ST-RAE,0.7242041284965587
+regression,43,macro_ST-RAE,0.7220119735320412
+regression,44,macro_ST-RAE,0.718874738346611
+classification,42,macro_MCC,0.2365565577679542
+classification,43,macro_MCC,0.311197529562628
+classification,44,macro_MCC,0.28631054886667107

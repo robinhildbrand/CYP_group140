@@ -10,6 +10,7 @@ task: regression        # regression | classification
 data: data              # Output folder of prepare_data.py
 seed: 42
 device: cuda
+eval_test: false  # Evaluate the test set only when explicitly requested
 
 hydra:
   run:
