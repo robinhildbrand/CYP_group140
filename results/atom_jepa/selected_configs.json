@@ -1,0 +1,370 @@
+{
+  "regression": {
+    "task": "regression",
+    "data": "data",
+    "seed": 0,
+    "device": "cpu",
+    "eval_test": true,
+    "train": {
+      "scheduler": "none",
+      "warmup_frac": 0.05,
+      "loss": "soft_threshold",
+      "huber_delta": 1.0,
+      "loss_aux": 0.0,
+      "pos_weight": "none",
+      "epochs": 100,
+      "batch_size": 128,
+      "weight_decay": 0.001,
+      "grad_clip": 10.0
+    },
+    "readout": {
+      "type": "mlp",
+      "hidden_dim": 256,
+      "num_layers": 2,
+      "dropout": 0.1
+    },
+    "model": {
+      "name": "TEST2T_reg_s0",
+      "type": "atom_jepa_cached",
+      "cache": "atomjepa_molecules",
+      "source": "per_atom",
+      "layers": "all",
+      "layer_mix": "scalar_mix",
+      "degrees": [
+        0
+      ],
+      "pool": "attention",
+      "pool_hidden": 128,
+      "pool_heads": 4,
+      "scaling": "standard",
+      "readout_lr": 0.0003
+    },
+    "targets": [
+      "CYP1A2_pIC50_direct_inhibition",
+      "CYP2C9_pIC50_direct_inhibition",
+      "CYP2D6_pIC50_direct_inhibition",
+      "CYP3A4_pIC50_direct_inhibition"
+    ],
+    "output_dir": "runs/regression/TEST2T_reg_s0/2026-11-07_12-42-30",
+    "versions": {
+      "torch": "2.6.0",
+      "atom-jepa": "0.3.0",
+      "rdkit": "2026.9.1",
+      "numpy": "2.4.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.1",
+      "hydra-core": "1.3.2",
+      "descriptastorus": "2.8.0",
+      "lightgbm": "4.6.0"
+    },
+    "preparation": {
+      "config": {
+        "data_revision": "146282d2ce1532f1803679a834a9bec9dac1e482",
+        "seed": 42,
+        "val_fraction": 0.15,
+        "test_fraction": 0.15,
+        "limit": null,
+        "rdkit": "2026.09.1",
+        "protocol": "atom-jepa-0.3.0"
+      },
+      "sha256": {
+        "cyp-challenge-TRAIN_inhibition.csv": "b8f79addd266fb6f9f4c222c5e4e73d926362328b6a8d2841871a54e46bd2278",
+        "cyp-challenge-TRAIN_TDI.csv": "b458f599a792412292664386e8f18adc5d4a4129d6bd212ae80a60fb9b96bb60"
+      },
+      "counts": {
+        "regression": {
+          "train": 3415,
+          "test": 762,
+          "val": 728
+        },
+        "classification": {
+          "train": 3382,
+          "test": 723,
+          "val": 715
+        }
+      },
+      "failed_conformers": 2
+    },
+    "split_sha256": {
+      "train": "c9c72ba7ffef582ed884f9de12d8d36e1cfe007f3247782cdd330d7ec0f01779",
+      "val": "f2bfab24a433c80ae727d3650e2de392b62621071469d7b9d8008debefa2cebc",
+      "test": "5d0d4257ac7af49b345d1f5cc87f43f40081bf71c73bdf33cda41d76b4c69a08"
+    }
+  },
+  "classification": {
+    "task": "classification",
+    "data": "data",
+    "seed": 0,
+    "device": "cpu",
+    "eval_test": true,
+    "train": {
+      "scheduler": "none",
+      "warmup_frac": 0.05,
+      "loss": "default",
+      "huber_delta": 1.0,
+      "loss_aux": 0.0,
+      "pos_weight": "none",
+      "epochs": 100,
+      "batch_size": 32,
+      "weight_decay": 0.001,
+      "grad_clip": 10.0
+    },
+    "readout": {
+      "type": "mlp",
+      "hidden_dim": 512,
+      "num_layers": 3,
+      "dropout": 0.1
+    },
+    "model": {
+      "name": "TEST2T_cls_s0",
+      "type": "atom_jepa_cached",
+      "cache": "atomjepa_molecules",
+      "source": "per_atom",
+      "layers": "all",
+      "layer_mix": "scalar_mix",
+      "degrees": [
+        0
+      ],
+      "pool": "attention",
+      "pool_hidden": 128,
+      "pool_heads": 4,
+      "scaling": "standard",
+      "readout_lr": 0.0003
+    },
+    "targets": [
+      "CYP2D6_is_TDI",
+      "CYP3A4_is_TDI"
+    ],
+    "output_dir": "runs/classification/TEST2T_cls_s0/2026-11-07_12-48-36",
+    "versions": {
+      "torch": "2.6.0",
+      "atom-jepa": "0.3.0",
+      "rdkit": "2026.9.1",
+      "numpy": "2.4.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.1",
+      "hydra-core": "1.3.2",
+      "descriptastorus": "2.8.0",
+      "lightgbm": "4.6.0"
+    },
+    "preparation": {
+      "config": {
+        "data_revision": "146282d2ce1532f1803679a834a9bec9dac1e482",
+        "seed": 42,
+        "val_fraction": 0.15,
+        "test_fraction": 0.15,
+        "limit": null,
+        "rdkit": "2026.09.1",
+        "protocol": "atom-jepa-0.3.0"
+      },
+      "sha256": {
+        "cyp-challenge-TRAIN_inhibition.csv": "b8f79addd266fb6f9f4c222c5e4e73d926362328b6a8d2841871a54e46bd2278",
+        "cyp-challenge-TRAIN_TDI.csv": "b458f599a792412292664386e8f18adc5d4a4129d6bd212ae80a60fb9b96bb60"
+      },
+      "counts": {
+        "regression": {
+          "train": 3415,
+          "test": 762,
+          "val": 728
+        },
+        "classification": {
+          "train": 3382,
+          "test": 723,
+          "val": 715
+        }
+      },
+      "failed_conformers": 2
+    },
+    "split_sha256": {
+      "train": "ea62d4ba1837c48fd71afb0098ded5f310bb6ea2d184cd682efecd3c08b3a2ca",
+      "val": "a43de0e95ca71826967294c56486429f80de75906703ae5ab4b6922c97f05c6e",
+      "test": "aeacb3cbdbefe2a920fa7420b7ff3628581db64fe0ed50293d926bba031f148d"
+    }
+  },
+  "regression_starter": {
+    "task": "regression",
+    "data": "data",
+    "seed": 0,
+    "device": "cpu",
+    "eval_test": true,
+    "train": {
+      "scheduler": "none",
+      "warmup_frac": 0.05,
+      "loss": "default",
+      "huber_delta": 1.0,
+      "loss_aux": 0.0,
+      "pos_weight": "none",
+      "epochs": 100,
+      "batch_size": 64,
+      "weight_decay": 0.01,
+      "grad_clip": 10.0
+    },
+    "readout": {
+      "type": "mlp",
+      "hidden_dim": 512,
+      "num_layers": 3,
+      "dropout": 0.1
+    },
+    "model": {
+      "name": "TEST2T_starter_s0",
+      "type": "atom_jepa_cached",
+      "cache": "atomjepa_molecules",
+      "source": "pooled",
+      "layers": [
+        "last"
+      ],
+      "layer_mix": "concat",
+      "degrees": [
+        0
+      ],
+      "pool": "mean",
+      "pool_hidden": 128,
+      "pool_heads": 1,
+      "scaling": "standard",
+      "readout_lr": 0.001
+    },
+    "targets": [
+      "CYP1A2_pIC50_direct_inhibition",
+      "CYP2C9_pIC50_direct_inhibition",
+      "CYP2D6_pIC50_direct_inhibition",
+      "CYP3A4_pIC50_direct_inhibition"
+    ],
+    "output_dir": "runs/regression/TEST2T_starter_s0/2026-11-07_12-56-19",
+    "versions": {
+      "torch": "2.6.0",
+      "atom-jepa": "0.3.0",
+      "rdkit": "2026.9.1",
+      "numpy": "2.4.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.1",
+      "hydra-core": "1.3.2",
+      "descriptastorus": "2.8.0",
+      "lightgbm": "4.6.0"
+    },
+    "preparation": {
+      "config": {
+        "data_revision": "146282d2ce1532f1803679a834a9bec9dac1e482",
+        "seed": 42,
+        "val_fraction": 0.15,
+        "test_fraction": 0.15,
+        "limit": null,
+        "rdkit": "2026.09.1",
+        "protocol": "atom-jepa-0.3.0"
+      },
+      "sha256": {
+        "cyp-challenge-TRAIN_inhibition.csv": "b8f79addd266fb6f9f4c222c5e4e73d926362328b6a8d2841871a54e46bd2278",
+        "cyp-challenge-TRAIN_TDI.csv": "b458f599a792412292664386e8f18adc5d4a4129d6bd212ae80a60fb9b96bb60"
+      },
+      "counts": {
+        "regression": {
+          "train": 3415,
+          "test": 762,
+          "val": 728
+        },
+        "classification": {
+          "train": 3382,
+          "test": 723,
+          "val": 715
+        }
+      },
+      "failed_conformers": 2
+    },
+    "split_sha256": {
+      "train": "c9c72ba7ffef582ed884f9de12d8d36e1cfe007f3247782cdd330d7ec0f01779",
+      "val": "f2bfab24a433c80ae727d3650e2de392b62621071469d7b9d8008debefa2cebc",
+      "test": "5d0d4257ac7af49b345d1f5cc87f43f40081bf71c73bdf33cda41d76b4c69a08"
+    }
+  },
+  "classification_starter": {
+    "task": "classification",
+    "data": "data",
+    "seed": 0,
+    "device": "cpu",
+    "eval_test": true,
+    "train": {
+      "scheduler": "none",
+      "warmup_frac": 0.05,
+      "loss": "default",
+      "huber_delta": 1.0,
+      "loss_aux": 0.0,
+      "pos_weight": "none",
+      "epochs": 100,
+      "batch_size": 64,
+      "weight_decay": 0.01,
+      "grad_clip": 10.0
+    },
+    "readout": {
+      "type": "mlp",
+      "hidden_dim": 512,
+      "num_layers": 3,
+      "dropout": 0.1
+    },
+    "model": {
+      "name": "TEST2T_starter_s0",
+      "type": "atom_jepa_cached",
+      "cache": "atomjepa_molecules",
+      "source": "pooled",
+      "layers": [
+        "last"
+      ],
+      "layer_mix": "concat",
+      "degrees": [
+        0
+      ],
+      "pool": "mean",
+      "pool_hidden": 128,
+      "pool_heads": 1,
+      "scaling": "standard",
+      "readout_lr": 0.001
+    },
+    "targets": [
+      "CYP2D6_is_TDI",
+      "CYP3A4_is_TDI"
+    ],
+    "output_dir": "runs/classification/TEST2T_starter_s0/2026-11-07_12-56-19",
+    "versions": {
+      "torch": "2.6.0",
+      "atom-jepa": "0.3.0",
+      "rdkit": "2026.9.1",
+      "numpy": "2.4.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.1",
+      "hydra-core": "1.3.2",
+      "descriptastorus": "2.8.0",
+      "lightgbm": "4.6.0"
+    },
+    "preparation": {
+      "config": {
+        "data_revision": "146282d2ce1532f1803679a834a9bec9dac1e482",
+        "seed": 42,
+        "val_fraction": 0.15,
+        "test_fraction": 0.15,
+        "limit": null,
+        "rdkit": "2026.09.1",
+        "protocol": "atom-jepa-0.3.0"
+      },
+      "sha256": {
+        "cyp-challenge-TRAIN_inhibition.csv": "b8f79addd266fb6f9f4c222c5e4e73d926362328b6a8d2841871a54e46bd2278",
+        "cyp-challenge-TRAIN_TDI.csv": "b458f599a792412292664386e8f18adc5d4a4129d6bd212ae80a60fb9b96bb60"
+      },
+      "counts": {
+        "regression": {
+          "train": 3415,
+          "test": 762,
+          "val": 728
+        },
+        "classification": {
+          "train": 3382,
+          "test": 723,
+          "val": 715
+        }
+      },
+      "failed_conformers": 2
+    },
+    "split_sha256": {
+      "train": "ea62d4ba1837c48fd71afb0098ded5f310bb6ea2d184cd682efecd3c08b3a2ca",
+      "val": "a43de0e95ca71826967294c56486429f80de75906703ae5ab4b6922c97f05c6e",
+      "test": "aeacb3cbdbefe2a920fa7420b7ff3628581db64fe0ed50293d926bba031f148d"
+    }
+  }
+}
