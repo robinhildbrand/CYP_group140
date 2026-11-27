@@ -107,9 +107,9 @@ def head_stage(rng, n=20):
 
 
 # The two readouts the A5 random search elected, measured on three seeds each. They are
-# kept here rather than in a yaml because they are *results*, not defaults: BEST_HEAD only
+# kept here rather than in a yaml because they are results, not defaults: BEST_HEAD only
 # means anything next to the control it beat, and the two tasks disagree about which head
-# to use. See PLAN.md section 11 point 7.
+# to use. The full record of the search is in results/atom_jepa/validation_runs.csv.
 #   regression       A5_rand07  0.6746 +/- 0.0091  against 0.6935 +/- 0.0065  (2.9 sigma)
 #   classification   A5_rand11  0.3729 +/- 0.0064  against 0.3687 +/- 0.0111  (noise)
 BEST_HEAD = {
