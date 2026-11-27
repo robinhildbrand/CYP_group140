@@ -10,7 +10,18 @@ task: regression        # regression | classification
 data: data              # Output folder of prepare_data.py
 seed: 42
 device: cuda
-eval_test: false  # Evaluate the test set only when explicitly requested
+eval_test: false        # true only for the one final test evaluation; sweeps force it off
+
+# Shared defaults of the train block; each model config adds its own epochs, batch size etc.
+# Every value here reproduces the behaviour the starter code had before it was configurable.
+train:
+  scheduler: none       # none | warmup_cosine | warmup_constant — a per-step factor on every LR
+  warmup_frac: 0.05     # Fraction of the total steps spent warming up, when a schedule is used
+  loss: default         # regression: default (MSE) | huber | l1 | soft_threshold
+  huber_delta: 1.0      # In standardized target units, so 1.0 is one training standard deviation
+  loss_aux: 0.0         # Weight of an MSE term added to soft_threshold, which is flat inside
+                        # the credible interval and so gives no gradient there on its own
+  pos_weight: none      # classification: none | auto (negatives/positives, from train) | a number
 
 hydra:
   run:
