@@ -1,0 +1,35 @@
+# @package _global_
+# Direction D: predict the eight pIC50s and derive the task's outputs from them.
+# The feature settings below are not defaults to be explored — they are the configuration
+# that won Directions A and C (AC_attn4_softthr / AC_attn4_bce), copied verbatim so that
+# the only difference between this model and its control is the head. See
+# models/atom_jepa_tdi.py for why the TDI label is a derived quantity.
+#
+#   classification   python finetune.py model=atom_jepa_tdi task=classification device=cpu
+#   regression       python finetune.py model=atom_jepa_tdi task=regression device=cpu \
+#                        model.tdi_head=false
+defaults:
+  - override /readout: mlp
+
+model:
+  name: atom_jepa_tdi
+  type: atom_jepa_tdi
+  cache: atomjepa_molecules
+  source: per_atom        # The attention pool needs per-atom features
+  layers: all             # All 8 blocks, mixed; Direction A's winner
+  layer_mix: scalar_mix
+  degrees: [0]            # The geometric channels cost 0.028 MCC, measured
+  pool: attention
+  pool_hidden: 128
+  pool_heads: 4           # 1 head is worse than the plain mean; 4 was the winner
+  scaling: standard
+  readout_lr: 1.0e-3
+  tdi_head: true          # true: logit = scale*(p_TDI - p_direct - 0.30/sigma) + bias
+  tdi_threshold: 0.3      # pIC50 units; the two-fold IC50 shift the TRAIN labels imply
+  aux_pic50: 0.1          # Weight of the auxiliary MSE on the pIC50 slots; 0 switches it off
+
+train:
+  epochs: 100
+  batch_size: 64
+  weight_decay: 1.0e-2
+  grad_clip: 10.0
