@@ -1,56 +1,31 @@
-"""Direction D: a head whose shape encodes what the TDI label actually means.
+"""Direction D: a head that builds the TDI logit from the pIC50 pair that defines it.
 
-The classification task asks whether a molecule is a time-dependent inhibitor of CYP2D6 or
-CYP3A4. `data/raw/cyp-challenge-TRAIN_TDI.csv` — the very file `prepare_data.py` reads and
-then throws most of the columns away — also carries, for all four enzymes, the pIC50
-measured under the TDI pre-incubation condition and the pIC50 measured directly. Measured
-on the training rows alone, the difference between the two predicts the label almost
-perfectly:
+TRAIN_TDI.csv carries, for all four enzymes, the pIC50 measured under the TDI
+pre-incubation condition as well as the direct one. On the training rows their
+difference reproduces is_TDI almost perfectly: AUC 0.962 for CYP2D6 (n=1493) and 0.855
+for CYP3A4 (n=2334), with the best threshold landing on 0.30 for both enzymes
+independently, which is the textbook two-fold shift in IC50.
 
-    shift = pIC50_TDI_condition - pIC50_direct_inhibition
-
-    CYP2D6   AUC 0.962 (n=1493), best threshold 0.30 -> MCC 0.898, 96.1% agreement
-    CYP3A4   AUC 0.855 (n=2334), best threshold 0.30 -> MCC 0.687, 82.0% agreement
-
-The threshold lands on 0.30 for both enzymes independently, which is the textbook two-fold
-shift in IC50. So `is_TDI` is, to a very good approximation, a *derived* quantity, and a
-binary classifier is being asked to rediscover a subtraction and a comparison from scratch.
-
-This model instead predicts the eight pIC50s and builds each logit out of them:
+This model therefore predicts the eight pIC50s and derives each logit from the two that
+define it,
 
     logit_e = softplus(scale_e) * (p_TDI_e - p_direct_e - 0.30/sigma) + bias_e
 
-`scale_e` and `bias_e` are learned, and `bias_e` starts at zero so the decision boundary
-begins exactly at the threshold the training data implies and is then free to move. The
-eight pIC50s get their own auxiliary MSE, which is what turns ~3.4k binary labels into
-~3.4k x 8 real-valued ones.
+with scale_e and bias_e learned and bias_e starting at zero, plus an auxiliary MSE on
+the eight pIC50s. tdi_head=true uses that logit for classification and standardizes the
+eight slots with one shared mean and std, since a difference of differently scaled
+quantities has no meaning. tdi_head=false is plain multi-task regression: slots 0-3 are
+the scored direct pIC50s, slots 4-7 the TDI-condition ones as auxiliary targets. The
+controls are AC_attn4_bce and AC_attn4_softthr.
 
-Two variants, selected by the task:
+The caveat, stated before the first run: the shift is a difference of two quantities the
+frozen encoder predicts poorly (R^2 about 0.15 on direct CYP2D6 pIC50), and a difference
+of two noisy estimates can be noisier than either.
 
-  classification (`tdi_head=true`)  the structured logit above. All eight slots are
-      standardized with ONE shared mean and std, because a difference of two differently
-      scaled quantities has no physical meaning; the threshold then scales as 0.30/sigma.
-  regression (`tdi_head=false`)     plain multi-task learning. Slots 0..3 are the four
-      direct pIC50s the task is scored on and are left in the space finetune.py's own
-      per-target standardization expects; slots 4..7 carry the TDI-condition pIC50s as
-      auxiliary targets only, standardized per slot. The question here is narrower: does
-      predicting the pre-incubation assay as a side task help the direct one?
-
-The honest caveat, stated before the first run: the shift is a difference of two quantities
-this encoder predicts poorly on its own — frozen features reach only R^2 ~ 0.15 on CYP2D6
-direct pIC50 — and the difference of two noisy estimates can easily be noisier than either.
-The design is principled; whether it pays is an empirical question, and the controls are
-`AC_attn4_bce` (same features, same pooling, unstructured 2-wide head) for classification
-and `AC_attn4_softthr` for regression.
-
-Why this is not leakage, in the terms the project's rules use:
-
-  * the auxiliary columns are *targets*, never inputs — nothing is fed to the encoder;
-  * they are attached only for molecules in the TRAINING split, recorded by
-    `fit_preprocessing(train)`; every other row carries NaN and is masked out, so the
-    auxiliary loss is structurally incapable of seeing a validation or test label;
-  * the 0.30 threshold is measured on training rows only;
-  * the splits are untouched, and no row is added or removed.
+This is not leakage. The auxiliary columns are targets and never inputs, they are
+attached only to rows of the training split by fit_preprocessing(train) while every
+other row stays NaN and is masked out of the loss, and the 0.30 threshold is measured on
+training rows alone. The splits are untouched.
 """
 from pathlib import Path
 
