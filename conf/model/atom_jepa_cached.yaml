@@ -1,0 +1,31 @@
+# @package _global_
+# Frozen Atom-JEPA encoder, features read from the cache built by scripts/cache_features.py.
+# Defaults below reproduce the representation models/atom_jepa.py feeds its readout today
+# (block 8 after the final norm, l=0 channels only, mean over atoms), so that every
+# Direction-A variant is measured against the starter's own choice.
+#
+#   python finetune.py model=atom_jepa_cached device=cpu
+#   python finetune.py model=atom_jepa_cached device=cpu model.layers=[4] model.degrees=[0,1,2]
+#   python finetune.py model=atom_jepa_cached device=cpu model.source=per_atom model.pool=gated_attention
+defaults:
+  - override /readout: mlp
+
+model:
+  name: atom_jepa_cached
+  type: atom_jepa_cached
+  cache: atomjepa_molecules
+  source: pooled          # pooled (cheap) | per_atom (needed for learned pooling)
+  layers: [last]          # blocks 1..8 and/or 'last', or 'all'
+  layer_mix: concat       # concat | scalar_mix (learned softmax weights over layers)
+  degrees: [0]            # 0 = l=0 values, 1 = ||l=1||, 2 = ||l=2||
+  pool: mean              # mean | sum | attention | gated_attention
+  pool_hidden: 128
+  pool_heads: 1
+  scaling: standard       # Fitted on the training split only
+  readout_lr: 1.0e-3
+
+train:
+  epochs: 100
+  batch_size: 64
+  weight_decay: 1.0e-2
+  grad_clip: 10.0

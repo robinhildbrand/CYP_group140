@@ -5,6 +5,7 @@ Configured with Hydra (conf/), e.g. python finetune.py model=morgan_mlp task=cla
 import hashlib
 import importlib.metadata
 import json
+import math
 from pathlib import Path
 import random
 
@@ -21,14 +22,99 @@ from models.gbm import LightGBMModel
 from prepare_data import REG, CLS
 
 
-def masked_loss(pred, y, task, mean, std):
+def masked_loss(pred, y, task, mean, std, options, pos_weight=None, bounds=None):
+    """Loss over the observed labels only. `options` is cfg.train.
+
+    `loss='default'` is MSE on standardized targets for regression and plain BCE for
+    classification — exactly what the starter trains with. The alternatives exist because
+    neither default matches the metric its task is scored on:
+
+    - regression is scored with ST-RAE, which counts only the distance falling OUTSIDE the
+      credible interval of each label. `soft_threshold` optimizes that distance itself;
+      `huber` and `l1` at least drop MSE's quadratic emphasis on the worst residuals.
+    - classification is scored with MCC at a fixed 0.5 threshold on about 20% positives,
+      where BCE is quite content to leave nearly every probability below that threshold.
+      `pos_weight` raises the price of a missed positive.
+    """
     mask = torch.isfinite(y)
     if not mask.any():
         return None
+    kind = options.loss
     # Index BEFORE applying the loss: multiplying NaN losses by zero is not safe.
-    if task == 'regression':
-        return nn.functional.mse_loss(pred[mask], ((y - mean) / std)[mask])
-    return nn.functional.binary_cross_entropy_with_logits(pred[mask], y[mask])
+    if task == 'classification':
+        if kind != 'default':
+            raise ValueError(f'loss={kind!r} is a regression loss')
+        weight = None if pos_weight is None else pos_weight.expand_as(y)[mask]
+        return nn.functional.binary_cross_entropy_with_logits(pred[mask], y[mask],
+                                                              pos_weight=weight)
+    standardized, p = ((y - mean) / std)[mask], pred[mask]
+    if kind == 'default':
+        return nn.functional.mse_loss(p, standardized)
+    if kind == 'huber':
+        return nn.functional.huber_loss(p, standardized, delta=options.huber_delta)
+    if kind == 'l1':
+        return nn.functional.l1_loss(p, standardized)
+    if kind != 'soft_threshold':
+        raise ValueError(f'Unknown loss {kind!r}')
+    if bounds is None:
+        raise ValueError('loss=soft_threshold needs the credible intervals in the batch, '
+                         'which this model does not provide (see models/targets.py)')
+    # ST-RAE is defined on the labels, so undo the standardization before measuring.
+    label = (pred * std + mean)[mask]
+    outside = (torch.relu(bounds[..., 0][mask] - label)
+               + torch.relu(label - bounds[..., 1][mask])).mean()
+    # A pure dead-zone loss gives no gradient at all to a prediction already inside the
+    # interval; loss_aux keeps a weak pull towards the label itself.
+    return outside + options.loss_aux * nn.functional.mse_loss(p, standardized)
+
+
+def positive_weight(setting, train, targets, device):
+    """Per-endpoint cost multiplier for the positive class, or None.
+
+    'auto' is negatives/positives measured on the TRAINING labels only, the weight that
+    makes the two classes contribute equally."""
+    if setting in (None, 'none'):
+        return None
+    if setting == 'auto':
+        ratios = [(train[t] == 0).sum() / max(1, (train[t] == 1).sum()) for t in targets]
+    else:
+        ratios = [float(setting)] * len(targets)
+    print(f'pos_weight: {dict(zip(targets, [round(float(r), 2) for r in ratios]))}', flush=True)
+    return torch.tensor(ratios, dtype=torch.float32, device=device)
+
+
+class Schedule:
+    """Multiplies every learning rate by a per-step factor and by its group's `lr_scale`.
+
+    Each group keeps the base rate it was created with, so a model that hands out one rate
+    per layer keeps those ratios. `lr_scale` defaults to 1 and is owned by the model: it is
+    how a strategy that switches a group off and on mid-training (probe-then-fine-tune,
+    gradual unfreezing) does so without rebuilding the optimizer and losing its moments.
+    With scheduler='none' and no lr_scale the factor is exactly 1 at every step, which is
+    what every config that predates this class gets."""
+
+    def __init__(self, optimizer, kind, total_steps, warmup_frac):
+        self.optimizer, self.kind = optimizer, kind
+        self.base = [group['lr'] for group in optimizer.param_groups]
+        self.total = max(1, total_steps)
+        self.warmup = min(self.total - 1, max(0, round(self.total * warmup_frac)))
+        if kind not in ('none', 'warmup_cosine', 'warmup_constant'):
+            raise ValueError(f'Unknown scheduler {kind!r}')
+
+    def factor(self, step):
+        if self.kind == 'none':
+            return 1.
+        if step < self.warmup:
+            return (step + 1) / (self.warmup + 1)
+        if self.kind == 'warmup_constant':
+            return 1.
+        progress = (step - self.warmup) / max(1, self.total - self.warmup)
+        return .5 * (1 + math.cos(math.pi * min(1., progress)))
+
+    def apply(self, step):
+        factor = self.factor(step)
+        for group, base in zip(self.optimizer.param_groups, self.base):
+            group['lr'] = base * group.get('lr_scale', 1.) * factor
 
 
 def metrics(frame, predictions, targets, task):
@@ -96,22 +182,44 @@ def train_torch(cfg, train, val, targets, task, data, out):
     train_loader = model.loader(train, targets, batch_size, shuffle=True)
     val_loader = model.loader(val, targets, batch_size)
     optimizer = torch.optim.AdamW(model.param_groups(), weight_decay=cfg.train.weight_decay)
+    schedule = Schedule(optimizer, cfg.train.scheduler, cfg.train.epochs * len(train_loader),
+                        cfg.train.warmup_frac)
+    # Optional model hooks: a phase schedule over the epochs, and a regularizer the model
+    # defines on its own weights. Models without them are unaffected.
+    set_epoch = getattr(model, 'set_epoch', None)
+    penalty = getattr(model, 'penalty', None)
+    pos_weight = (positive_weight(cfg.train.pos_weight, train, targets, model.device)
+                  if task == 'classification' else None)
+    wants_bounds = task == 'regression' and cfg.train.loss == 'soft_threshold'
+    step = 0
     best = float('inf')
     for epoch in range(1, cfg.train.epochs + 1):
+        if set_epoch is not None:
+            set_epoch(epoch, optimizer)
         model.train()
         loss_sum, observed = 0., 0
         for batch in train_loader:
             y = batch['y'].to(model.device)
-            loss = masked_loss(model(batch).float(), y, task, mean, std)
+            bounds = batch.get('bounds') if wants_bounds else None
+            loss = masked_loss(model(batch).float(), y, task, mean, std, cfg.train, pos_weight,
+                               None if bounds is None else bounds.to(model.device))
             if loss is None:
                 continue
             if not torch.isfinite(loss):
                 raise RuntimeError('Nonfinite training loss')
+            objective = loss
+            if penalty is not None:
+                extra = penalty()
+                # Reported train_loss stays the data term, so histories remain comparable
+                # across regularizer strengths.
+                objective = loss if extra is None else loss + extra
+            schedule.apply(step)
             optimizer.zero_grad(set_to_none=True)
-            loss.backward()
+            objective.backward()
             nn.utils.clip_grad_norm_([p for g in optimizer.param_groups for p in g['params']],
                                      cfg.train.grad_clip)
             optimizer.step()
+            step += 1
             n = int(torch.isfinite(y).sum())
             loss_sum += loss.item() * n
             observed += n
@@ -193,10 +301,11 @@ def main(cfg):
     vp = val[['SMILES', 'Molecule_Name']].copy()
     vp[targets] = validation_predictions
     vp.to_csv(out / 'validation_predictions.csv', index=False)
+    # Exploration runs stop here so the held-out labels are never even read. Only the
+    # configurations already selected on validation are run again with eval_test=true.
     if not cfg.eval_test:
-        print('Validation complete. Test evaluation skipped.')
+        print('eval_test=false: the test split was not read', flush=True)
         return
-
     # Only now load and evaluate the held-out labelled test split.
     test = pd.read_csv(data / task / 'test.csv')
     if not len(test):

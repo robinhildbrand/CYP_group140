@@ -29,7 +29,34 @@ class MLPReadout(nn.Module):
         return self.mlp(x)
 
 
-READOUTS = {'linear': LinearReadout, 'mlp': MLPReadout}
+class ResidualMLPReadout(nn.Module):
+    """Pre-norm residual MLP, an alternative to the plain stacked MLP above.
+
+    Each block is LayerNorm -> Linear -> GELU -> Dropout -> Linear added back to its input,
+    so depth no longer makes the head harder to optimize and the normalization keeps the
+    very differently scaled Atom-JEPA feature groups (l=0 values and l>0 norms differ by
+    roughly 3x in magnitude) on comparable footing."""
+
+    def __init__(self, in_dim, n_targets, hidden_dim=512, num_blocks=2, dropout=0.1,
+                 expansion=2):
+        super().__init__()
+        self.project = nn.Linear(in_dim, hidden_dim)
+        inner = hidden_dim * expansion
+        self.blocks = nn.ModuleList(
+            nn.Sequential(nn.LayerNorm(hidden_dim), nn.Linear(hidden_dim, inner), nn.GELU(),
+                          nn.Dropout(dropout), nn.Linear(inner, hidden_dim))
+            for _ in range(num_blocks))
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.out = nn.Linear(hidden_dim, n_targets)
+
+    def forward(self, x):
+        x = self.project(x)
+        for block in self.blocks:
+            x = x + block(x)
+        return self.out(self.norm(x))
+
+
+READOUTS = {'linear': LinearReadout, 'mlp': MLPReadout, 'resmlp': ResidualMLPReadout}
 
 
 def build_readout(cfg, in_dim, n_targets):

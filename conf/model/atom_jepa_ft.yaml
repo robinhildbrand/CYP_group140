@@ -1,0 +1,36 @@
+# @package _global_
+# Direction B: how much of the pretrained Atom-JEPA encoder should move, and how.
+# The defaults below are plain full fine-tuning, identical to model=atom_jepa; every
+# experiment of this direction is one override away. See models/atom_jepa_ft.py.
+#
+#   frozen (linear probe)   model.unfreeze_blocks=0
+#   last-k blocks           model.unfreeze_blocks=2
+#   LP-FT                   model.probe_epochs=5
+#   layer-wise LR decay     model.llrd=0.65
+#   L2-SP                   model.l2sp=1.0e-3
+#   warmup + cosine         train.scheduler=warmup_cosine
+#   no-pretraining control  model.pretrained=false
+defaults:
+  - override /readout: mlp
+
+model:
+  name: atom_jepa_ft
+  type: atom_jepa_ft
+  checkpoint: molecules     # Released encoder name or local checkpoint path
+  precision: fp32           # bf16 is faster on L40s/A100 but emulated (slower) on V100
+  pretrained: true          # false keeps the architecture and discards the pretrained weights
+  unfreeze_blocks: all      # 'all', or the number of top blocks that may move (0 = frozen)
+  llrd: 1.0                 # Geometric LR decay per depth towards the input; 1.0 = uniform
+  probe_epochs: 0           # Epochs with the encoder frozen before it joins the head (LP-FT)
+  l2sp: 0.0                 # L2 pull towards the pretrained weights; replaces weight decay
+  pool: mean                # mean | attention | gated_attention — how atoms become one vector
+  pool_heads: 4             # Only for the attention pools; the readout sees heads x channels
+  layer_mix: none           # none | scalar_mix — learned softmax over the 8 blocks (needs a pool)
+  encoder_lr: 1.0e-5        # Rate of the topmost encoder depth; lower depths get llrd^d of it
+  readout_lr: 1.0e-3
+
+train:                      # scheduler and warmup_frac come from conf/config.yaml
+  epochs: 20
+  batch_size: 8
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
